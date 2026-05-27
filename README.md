@@ -30,10 +30,10 @@ Installed from GitHub via [PlebeiusGaragicus/tap](https://github.com/PlebeiusGar
 
 ```bash
 brew tap PlebeiusGaragicus/tap
-brew install catmd --HEAD
+brew install catmd
 ```
 
-Update to the latest `main`:
+Update:
 
 ```bash
 brew update
@@ -41,3 +41,11 @@ brew upgrade catmd
 ```
 
 Requires [Homebrew](https://brew.sh) and Node.js 22+ (installed automatically by the formula).
+
+## Developing
+
+See [AGENTS.md](AGENTS.md) for releases (git tags + tap formula) and how to verify with `brew upgrade catmd`.
+
+## Version
+
+Current release: **0.1.0** — see [`VERSION`](VERSION) and [tags](https://github.com/PlebeiusGaragicus/catmd/tags).

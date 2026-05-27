@@ -7,46 +7,135 @@
 Avoid:
 
 - `npm link` / `npm install -g .`
-- `npm run catmd` or `node dist/cli.js` to test changes on the CLI
+- `npm run catmd` or `node dist/cli.js` to test the CLI
 - `brew install` from a local path or formula file in this repo
-- Any workflow that puts a dev build on `PATH` instead of the Homebrew install
+- `brew install catmd --HEAD` (we ship versioned releases, not HEAD-only)
 
-**Use the same path as end users:** GitHub → Homebrew tap → `catmd` on `PATH`.
+**Use the same path as end users:** git tag → Homebrew tap formula → `brew install catmd` / `brew upgrade catmd`.
 
-## Development workflow
+## Repos
 
-1. Edit code in this repo (`src/`, `theme.json`, etc.).
-2. Run tests in the repo if needed: `npm install` (once), `npm test` — this is only for the test runner, not for running `catmd`.
-3. Commit and **push to `main`** on `github.com/PlebeiusGaragicus/catmd`.
-4. Refresh the installed CLI:
+| Repo | Purpose |
+|------|---------|
+| `PlebeiusGaragicus/catmd` | Source, tests, `VERSION`, git tags |
+| `PlebeiusGaragicus/homebrew-tap` | `Formula/catmd.rb` — `url` + `sha256` per release |
+
+The [`homebrew-tap/`](homebrew-tap/) folder in this repo is the **template** for the tap. After changing the formula for a release, copy it to the tap repo and push.
+
+## Day-to-day development
+
+1. Edit code (`src/`, `theme.json`, etc.).
+2. Run tests in this repo (not the installed CLI):
 
    ```bash
-   brew update
-   brew reinstall catmd --HEAD
+   npm install   # once
+   npm test
    ```
 
-5. Verify like a user:
+3. Commit and push to `main`.
+
+Pushing `main` alone does **not** update what users get from Homebrew. Users install **tagged versions** only.
+
+## Releasing a new version
+
+Do this when a change should be installable via `brew install` / `brew upgrade`.
+
+### 1. Bump version
+
+Update both:
+
+- [`VERSION`](VERSION) — e.g. `0.1.1`
+- [`package.json`](package.json) `"version"` — same value
+
+Commit on `main` and push.
+
+### 2. Tag the release
+
+Tag must match `VERSION` with a `v` prefix:
+
+```bash
+git tag -a v0.1.1 -m "v0.1.1"
+git push origin main
+git push origin v0.1.1
+```
+
+### 3. Compute the tarball checksum
+
+After the tag exists on GitHub:
+
+```bash
+curl -sL "https://github.com/PlebeiusGaragicus/catmd/archive/refs/tags/v0.1.1.tar.gz" | shasum -a 256
+```
+
+Or from a clean local tree (before pushing tag):
+
+```bash
+git archive --format=tar.gz --prefix=catmd-0.1.1/ v0.1.1 | shasum -a 256
+```
+
+### 4. Update the Homebrew formula
+
+In [`homebrew-tap/Formula/catmd.rb`](homebrew-tap/Formula/catmd.rb) (then sync to `PlebeiusGaragicus/homebrew-tap`):
+
+```ruby
+url "https://github.com/PlebeiusGaragicus/catmd/archive/refs/tags/v0.1.1.tar.gz"
+sha256 "<checksum from step 3>"
+```
+
+Copy the file to the tap repo, commit, and push:
+
+```bash
+cp homebrew-tap/Formula/catmd.rb /path/to/homebrew-tap/Formula/catmd.rb
+cd /path/to/homebrew-tap && git add Formula/catmd.rb && git commit -m "catmd 0.1.1" && git push
+```
+
+### 5. Install or upgrade like a user
+
+```bash
+brew update
+brew upgrade catmd
+# first-time install:
+# brew tap PlebeiusGaragicus/tap && brew install catmd
+```
+
+### 6. Verify
+
+```bash
+catmd EXAMPLE.md
+```
+
+Do not use `npm run catmd` to verify releases.
+
+## First release (v0.1.0) checklist
+
+Do this once to move off HEAD-only installs:
+
+1. **Commit and push** all changes on `catmd` `main` (including `homebrew-tap/Formula/catmd.rb` template in this repo).
+2. **Tag** that commit: `git tag -a v0.1.0 -m "v0.1.0"` → `git push origin v0.1.0`.
+3. **Checksum** (tag must exist on GitHub):
 
    ```bash
-   catmd EXAMPLE.md
+   curl -sL "https://github.com/PlebeiusGaragicus/catmd/archive/refs/tags/v0.1.0.tar.gz" | shasum -a 256
    ```
 
-If behavior does not match expectations, fix the code, push again, and repeat `brew update` / `brew reinstall catmd --HEAD`. Do not fall back to a local `npm run catmd` shortcut.
+4. Put the `url` and `sha256` into [`homebrew-tap/Formula/catmd.rb`](homebrew-tap/Formula/catmd.rb), **copy** to `PlebeiusGaragicus/homebrew-tap`, commit, and push (replaces any HEAD-only formula).
+5. **Install:** `brew update && brew install catmd` (no `--HEAD`).
 
-## Homebrew tap
+The `sha256` in the template may not match until steps 1–3 are done on the same commit — always recompute after tagging.
 
-The formula lives in the separate **`homebrew-tap`** repo (`PlebeiusGaragicus/homebrew-tap`). The `--HEAD` install builds from `catmd` `main` on each reinstall.
+## When to change the formula vs only the tag
 
-Only change the tap when install steps change (new dependency, new files to install, env vars). Ordinary code changes only require a push to `catmd` and `brew reinstall catmd --HEAD`.
-
-## Version
-
-Bump [`VERSION`](VERSION) (and keep it in sync with `package.json` if you change version there) when making a release-worthy change worth noting.
+| Change | Action |
+|--------|--------|
+| Code, theme, docs | New tag + bump `url`/`sha256` in formula |
+| New npm dependency, install paths, `node` version | Same, and edit formula `install` block |
+| Typo in README only | No release required unless you want to |
 
 ## Summary
 
 | Task | Command |
 |------|---------|
-| Test renderer | `npm test` (in repo) |
-| Ship + verify CLI | `git push` → `brew update` → `brew reinstall catmd --HEAD` → `catmd …` |
-| Do not use | `npm run catmd`, `npm link`, local `brew install ./…` |
+| Test | `npm test` |
+| Ship | bump `VERSION` → push `main` → `git tag vX.Y.Z` → push tag → update formula `url`/`sha256` → push tap → `brew update && brew upgrade catmd` |
+| Verify | `catmd EXAMPLE.md` |
+| Do not use | `npm run catmd`, `npm link`, `brew install --HEAD catmd` |
