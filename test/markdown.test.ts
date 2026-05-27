@@ -5,7 +5,13 @@ import { resetCapabilitiesCache, setCapabilities } from "../src/render/hyperlink
 import { themeFromJson } from "../src/render/theme.js";
 
 const theme = themeFromJson({
-	heading: ["bold", "cyan"],
+	heading: ["bold", "cyan", "underline"],
+	heading1: ["bold", "cyan", "underline"],
+	heading2: ["bold", "cyan", "underline"],
+	heading3: ["bold", "cyan", "underline"],
+	heading4: ["bold", "underline"],
+	heading5: ["bold", "dim", "underline"],
+	heading6: ["dim", "underline"],
 	link: ["blue", "underline"],
 	linkUrl: ["dim"],
 	code: ["yellow"],
@@ -74,6 +80,61 @@ describe("catmd markdown renderer", () => {
 			assert.ok(plainLines.some((line) => line.includes("Name")));
 			assert.ok(plainLines.some((line) => line.includes("Alice")));
 			assert.ok(plainLines.some((line) => line.includes("│")));
+		});
+	});
+
+	describe("Headings", () => {
+		it("should render all levels without # prefix", () => {
+			const markdown = new Markdown(
+				`# One
+## Two
+### Three`,
+				0,
+				0,
+				theme,
+			);
+			const lines = markdown.render(80).map(stripAnsi);
+
+			assert.ok(lines.some((line) => line === "One"));
+			assert.ok(lines.some((line) => line === "Two"));
+			assert.ok(lines.some((line) => line === "Three"));
+			assert.ok(!lines.some((line) => line.includes("#")));
+		});
+
+		it("should draw a setext rule under H1 and H2", () => {
+			const markdown = new Markdown("# Title\n\n## Section", 0, 0, theme);
+			const lines = markdown.render(80).map(stripAnsi);
+
+			const titleIdx = lines.indexOf("Title");
+			assert.ok(titleIdx >= 0);
+			assert.strictEqual(lines[titleIdx + 1], "─────");
+
+			const sectionIdx = lines.indexOf("Section");
+			assert.ok(sectionIdx >= 0);
+			assert.strictEqual(lines[sectionIdx + 1], "───────");
+		});
+
+		it("should not draw a setext rule under H3+", () => {
+			const markdown = new Markdown("### Subsection\n\nBody", 0, 0, theme);
+			const lines = markdown.render(80).map(stripAnsi);
+
+			const idx = lines.indexOf("Subsection");
+			assert.ok(idx >= 0);
+			assert.notStrictEqual(lines[idx + 1], "──────────");
+		});
+
+		it("should underline H3+ via theme (no setext rule)", () => {
+			const markdown = new Markdown("### Subsection", 0, 0, theme);
+			const output = markdown.render(80).join("\n");
+			assert.ok(output.includes("\x1b[4m"));
+			assert.ok(!output.includes("──────────"));
+		});
+
+		it("should apply heading style to inline code inside headings", () => {
+			const markdown = new Markdown("## Hello `world`", 0, 0, theme);
+			const output = markdown.render(80).join("\n");
+			assert.ok(output.includes("\x1b[4m")); // underline from heading style
+			assert.ok(!stripAnsi(output).includes("#"));
 		});
 	});
 

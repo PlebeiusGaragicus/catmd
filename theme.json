@@ -1,5 +1,11 @@
 {
 	"heading": ["bold", "cyan"],
+	"heading1": ["bold", "cyan", "underline"],
+	"heading2": ["bold", "cyan", "underline"],
+	"heading3": ["bold", "cyan", "underline"],
+	"heading4": ["bold", "underline"],
+	"heading5": ["bold", "dim", "underline"],
+	"heading6": ["dim", "underline"],
 	"link": ["blue", "underline"],
 	"linkUrl": ["dim"],
 	"code": ["yellow"],

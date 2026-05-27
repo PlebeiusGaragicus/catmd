@@ -5,7 +5,7 @@ import { renderMarkdown } from "./render/markdown.js";
 import { loadTheme, noopTheme } from "./render/theme.js";
 
 function usage(): never {
-	console.error(`usage: catmd [--width N] [--no-color] [--no-hyperlinks] [--theme PATH] [file ...]
+	console.error(`usage: catmd [--no-color] [--no-hyperlinks] [--theme PATH] [file ...]
 
 Read markdown from files or stdin (-).`);
 	process.exit(1);
@@ -13,13 +13,11 @@ Read markdown from files or stdin (-).`);
 
 function parseArgs(argv: string[]): {
 	paths: string[];
-	width?: number;
 	noColor: boolean;
 	noHyperlinks: boolean;
 	themePath?: string;
 } {
 	const paths: string[] = [];
-	let width: number | undefined;
 	let noColor = false;
 	let noHyperlinks = false;
 	let themePath: string | undefined;
@@ -41,16 +39,6 @@ function parseArgs(argv: string[]): {
 			noHyperlinks = true;
 			continue;
 		}
-		if (arg === "--width") {
-			const next = argv[++i];
-			if (!next) usage();
-			width = Number.parseInt(next, 10);
-			if (!Number.isFinite(width) || width < 1) {
-				console.error("catmd: --width requires a positive integer");
-				process.exit(1);
-			}
-			continue;
-		}
 		if (arg === "--theme") {
 			const next = argv[++i];
 			if (!next) usage();
@@ -64,7 +52,7 @@ function parseArgs(argv: string[]): {
 		paths.push(arg);
 	}
 
-	return { paths, width, noColor, noHyperlinks, themePath };
+	return { paths, noColor, noHyperlinks, themePath };
 }
 
 function readInput(paths: string[]): string {
@@ -85,7 +73,7 @@ function readInput(paths: string[]): string {
 
 function main(): void {
 	const args = parseArgs(process.argv.slice(2));
-	const termWidth = args.width ?? process.stdout.columns ?? 80;
+	const termWidth = process.stdout.columns ?? 80;
 	const useColor = !args.noColor && !process.env.NO_COLOR;
 
 	let theme;

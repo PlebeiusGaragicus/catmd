@@ -35,7 +35,10 @@ export interface DefaultTextStyle {
  * Each function takes text and returns styled text with ANSI codes.
  */
 export interface MarkdownTheme {
+	/** Base heading style; used when a level-specific style is not defined. */
 	heading: (text: string) => string;
+	/** Style a heading by markdown depth (1–6). */
+	styleHeading: (level: number, text: string) => string;
 	link: (text: string) => string;
 	linkUrl: (text: string) => string;
 	code: (text: string) => string;
@@ -213,27 +216,30 @@ class MarkdownRenderer {
 
 		switch (token.type) {
 			case "heading": {
-				const headingLevel = token.depth;
-				const headingPrefix = `${"#".repeat(headingLevel)} `;
+				const level = token.depth;
 
-				// Build a heading-specific style context so inline tokens (codespan, bold, etc.)
-				// restore heading styling after their own ANSI resets instead of falling back to
-				// the default text style.
-				let headingStyleFn: (text: string) => string;
-				if (headingLevel === 1) {
-					headingStyleFn = (text: string) => this.theme.heading(this.theme.bold(this.theme.underline(text)));
-				} else {
-					headingStyleFn = (text: string) => this.theme.heading(this.theme.bold(text));
+				// Extra blank line before top-level sections (H1/H2).
+				if (level <= 2) {
+					lines.push("");
 				}
 
+				// Per-level ANSI styles (including underline on all levels via theme.json).
+				const headingStyleFn = (text: string) => this.theme.styleHeading(level, text);
 				const headingStyleContext: InlineStyleContext = {
 					applyText: headingStyleFn,
 					stylePrefix: this.getStylePrefix(headingStyleFn),
 				};
 
-				const headingText = this.renderInlineTokens(token.tokens || [], headingStyleContext);
-				const styledHeading = headingLevel >= 3 ? headingStyleFn(headingPrefix) + headingText : headingText;
-				lines.push(styledHeading);
+				const styledHeading = this.renderInlineTokens(token.tokens || [], headingStyleContext);
+				const headingLines = wrapTextWithAnsi(styledHeading, width);
+				lines.push(...headingLines);
+
+				// Setext dash rule under H1/H2 only (in addition to ANSI underline on every level).
+				if (level <= 2 && headingLines.length > 0) {
+					const ruleWidth = Math.max(...headingLines.map((line) => visibleWidth(line)), 1);
+					lines.push(this.theme.hr("─".repeat(ruleWidth)));
+				}
+
 				if (nextTokenType && nextTokenType !== "space") {
 					lines.push(""); // Add spacing after headings (unless space token follows)
 				}

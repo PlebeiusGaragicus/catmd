@@ -22,8 +22,27 @@ const STYLE_CODES: Record<string, string> = {
 	gray: "\x1b[90m",
 };
 
+/**
+ * Default ANSI style stacks per markdown heading depth (1–6).
+ * Every level is underlined; color and weight taper for deeper headings.
+ */
+export const DEFAULT_HEADING_STYLES: Record<number, string[]> = {
+	1: ["bold", "cyan", "underline"],
+	2: ["bold", "cyan", "underline"],
+	3: ["bold", "cyan", "underline"],
+	4: ["bold", "underline"],
+	5: ["bold", "dim", "underline"],
+	6: ["dim", "underline"],
+};
+
 export interface ThemeJson {
 	heading?: string[];
+	heading1?: string[];
+	heading2?: string[];
+	heading3?: string[];
+	heading4?: string[];
+	heading5?: string[];
+	heading6?: string[];
 	link?: string[];
 	linkUrl?: string[];
 	code?: string[];
@@ -45,9 +64,25 @@ function styleFn(keys: string[]): (text: string) => string {
 	return (text: string) => (prefix ? prefix + text + RESET : text);
 }
 
+function headingStyleKeys(json: ThemeJson, level: number): string[] {
+	const levelKey = `heading${level}` as keyof ThemeJson;
+	const levelStyles = json[levelKey];
+	if (Array.isArray(levelStyles)) {
+		return levelStyles;
+	}
+	return DEFAULT_HEADING_STYLES[level] ?? json.heading ?? ["bold", "cyan", "underline"];
+}
+
 export function themeFromJson(json: ThemeJson): MarkdownTheme {
+	const baseHeading = styleFn(json.heading ?? ["bold", "cyan"]);
+	const styleHeading = (level: number, text: string): string => {
+		const clamped = Math.min(6, Math.max(1, level));
+		return styleFn(headingStyleKeys(json, clamped))(text);
+	};
+
 	return {
-		heading: styleFn(json.heading ?? ["bold", "cyan"]),
+		heading: baseHeading,
+		styleHeading,
 		link: styleFn(json.link ?? ["blue", "underline"]),
 		linkUrl: styleFn(json.linkUrl ?? ["dim"]),
 		code: styleFn(json.code ?? ["yellow"]),
@@ -80,6 +115,7 @@ export function loadTheme(themePath?: string): MarkdownTheme {
 
 export const noopTheme: MarkdownTheme = {
 	heading: (text) => text,
+	styleHeading: (_level, text) => text,
 	link: (text) => text,
 	linkUrl: (text) => text,
 	code: (text) => text,

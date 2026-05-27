@@ -8,17 +8,13 @@ npm run catmd -- EXAMPLE.md
 node dist/cli.js EXAMPLE.md
 ```
 
-Pipe through a narrow width to stress wrapping:
-
-```bash
-catmd --width 40 EXAMPLE.md
-```
-
 ---
 
 ## Headings
 
-# Heading 1 (bold + underline in theme)
+Hierarchy without `#` markers: every heading is underlined (see `theme.json` `heading1`–`heading6`). H1/H2 also get a `─────` dash rule; color and weight taper for deeper levels.
+
+# Heading 1
 
 ## Heading 2 with **bold** and *italic* and `inline code`
 
@@ -198,4 +194,4 @@ Final paragraph with everything inline: see **README**, run `catmd EXAMPLE.md`, 
 
 | Done | ✓ |
 | ---- | - |
-| Test | Run `catmd --width 60 EXAMPLE.md` |
+| Test | Run `catmd EXAMPLE.md` |
