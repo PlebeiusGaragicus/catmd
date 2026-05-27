@@ -1,0 +1,17 @@
+{
+	"heading": ["bold", "cyan"],
+	"link": ["blue", "underline"],
+	"linkUrl": ["dim"],
+	"code": ["yellow"],
+	"codeBlock": ["green"],
+	"codeBlockBorder": ["dim"],
+	"quote": ["italic"],
+	"quoteBorder": ["dim"],
+	"hr": ["dim"],
+	"listBullet": ["cyan"],
+	"bold": ["bold"],
+	"italic": ["italic"],
+	"strikethrough": ["strikethrough"],
+	"underline": ["underline"],
+	"codeBlockIndent": "  "
+}
